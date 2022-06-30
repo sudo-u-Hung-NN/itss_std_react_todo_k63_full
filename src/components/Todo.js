@@ -1,75 +1,62 @@
-import React, { useState } from 'react';
-
-/* コンポーネント */
-import TodoItem from './TodoItem';
-import Input from './Input';
-import Filter from './Filter';
-
-/* カスタムフック */
-import useStorage from '../hooks/storage';
+import React, { useState } from 'react'
 
 /* ライブラリ */
-import {getKey} from "../lib/util";
+import { uploadImage } from "../lib/firebase";
 
-function Todo() {
-  const [items, putItems, clearItems] = useStorage();
-  
-  const [filter, setFilter] = React.useState('ALL');
+function Upload({ userImage, onSelectedImage }) {
+  const [isModal, setIsModal] = useState(false);
+  const active = isModal ? "is-active" : "";
+  const [imageUrl, setImageUrl] = useState(userImage);
 
-  const displayItems = items.filter(item => {
-    if (filter === 'ALL') return true;
-    if (filter === 'TODO') return !item.done;
-    if (filter === 'DONE') return item.done;
-  });
-  
-  const handleCheck = checked => {
-    const newItems = items.map(item => {
-      if (item.key === checked.key) {
-        item.done = !item.done;
-      }
-      return item;
-    });
-    putItems(newItems);
+  const handleImage = async event => {
+    const image = event.target.files[0];
+    const imageUrl = await uploadImage(image);
+    onSelectedImage(imageUrl);
+    setImageUrl(imageUrl);
   };
-  
-  const handleAdd = text => {
-    putItems([...items, { key: getKey(), text, done: false }]);
+
+  const handleClick = () => {
+    setIsModal(!isModal);
   };
-  
-  const handleFilterChange = value => setFilter(value);
+
+  const ImageViewer = () => {
+    if (!imageUrl) {
+      return <i class="fas fa-user"></i>
+    } else {
+      return (
+        <div>
+          <img src={imageUrl} />
+        </div>
+      )
+    }
+  }
 
   return (
-    <article class="panel is-danger">
-      <div className="panel-heading">
-        <span class="icon-text">
-          <span class="icon">
-            <i class="fas fa-calendar-check"></i>
-          </span>
-          <span> ITSS Todoアプリ</span>
+    <div className="App">
+      <div className={`modal ${active}`}>
+        <div class="modal-background"></div>
+        <div class="modal-content">
+          <div class="file has-name is-boxed" >
+            <label class="file-label">
+              <input class="file-input" type="file" name="resume" onChange={handleImage} />
+              <span class="file-cta">
+                <span class="file-icon">
+                  <i class="fas fa-upload"></i>
+                </span>
+                <span class="file-label">画像を選択してください</span>
+              </span>
+            </label>
+          </div>
+          <button class="modal-close is-large" aria-label="close" onClick={handleClick}></button>
+        </div>
+      </div>
+      <button onClick={handleClick} class="button is-primary is-inverted">
+        <span class="icon">
+          <ImageViewer />
         </span>
-      </div>
-      <Input onAdd={handleAdd} />
-      <Filter
-        onChange={handleFilterChange}
-        value={filter}
-      />
-      {displayItems.map(item => (
-        <TodoItem 
-          key={item.key}
-          item={item}
-          onCheck={handleCheck}
-        />
-      ))}
-      <div className="panel-block">
-        {displayItems.length} items
-      </div>
-      <div className="panel-block">
-        <button className="button is-light is-fullwidth" onClick={clearItems}>
-          全てのToDoを削除
-        </button>
-      </div>
-    </article>
+      </button>
+    </div >
   );
 }
 
-export default Todo;
+export default Upload
